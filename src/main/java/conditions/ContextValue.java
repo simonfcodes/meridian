@@ -1,32 +1,19 @@
 package conditions;
 
-public class ContextValue {
-    private final FieldLookupResult result;
-    private final String className;
-    private final Object fieldValue;
+import java.util.Objects;
 
-    public ContextValue(String className, Object fieldValue, FieldLookupResult result) {
-        this.className = className;
-        this.fieldValue = fieldValue;
+public record ContextValue(
+        Object value,
+        FieldLookupResult result
+) {
+    public ContextValue(Object value, FieldLookupResult result) {
+        if (Objects.isNull(value) && result == FieldLookupResult.FOUND) {
+            throw new IllegalArgumentException("Cannot have a null value with a FOUND result.");
+        }
+        if (!(Objects.isNull(value)) && result == FieldLookupResult.MISSING) {
+            throw new IllegalArgumentException("Cannot have a non-null value with a MISSING result.");
+        }
+        this.value = value;
         this.result = result;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public Object getFieldValue() {
-        return fieldValue;
-    }
-
-    public FieldLookupResult getResult() {
-        return result;
-    }
-
-    public enum FieldLookupResult {
-        FOUND,
-        FOUNDNULL,
-        MISSING,
-        PROVIDED
     }
 }

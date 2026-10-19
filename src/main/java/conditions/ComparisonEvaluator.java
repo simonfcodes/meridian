@@ -5,84 +5,82 @@ import java.util.Objects;
 
 public class ComparisonEvaluator {
     public static boolean doComparison(ComparisonOperator op, ContextValue a, ContextValue b) {
-        if (!(a.getClassName().equals(b.getClassName()))) {
-            throw new ComparisonException("Cannot compare values of different types: " + a.getClassName() + " and " + b.getClassName());
-        }
+
         switch (op) {
             case EQUALS -> {
                 return equals(a, b);
             }
-            case GREATER_THAN -> {
-                return greaterThan(a, b);
+            case GREATER_THAN, LESS_THAN -> {
+                return gtOrLt(a, b, op);
             }
-            case LESS_THAN -> {
-                return lessThan(a, b);
+            case GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL -> {
+                return gteOrLte(a, b, op);
             }
             default -> throw new ComparisonException("Cannot evaluate");
         }
     }
 
     private static boolean equals(ContextValue a, ContextValue b) {
-        if (a.getResult() == ContextValue.FieldLookupResult.FOUNDNULL) {
-            return Objects.isNull(b.getFieldValue());
+        if (eitherAreNull(a, b)) {
+            return Objects.equals(a.value(), b.value());
         }
-        if (a.getClassName().equals("java.math.BigDecimal")) {
-            BigDecimal numA = new BigDecimal(a.getFieldValue().toString());
-            BigDecimal numB = new BigDecimal(b.getFieldValue().toString());
+        if (a.value().getClass().getName().equals("java.math.BigDecimal")) {
+            BigDecimal numA = new BigDecimal(a.value().toString());
+            BigDecimal numB = new BigDecimal(b.value().toString());
             return numA.compareTo(numB) == 0;
         }
-        return a.getFieldValue().equals(b.getFieldValue());
+        return a.value().equals(b.value());
     }
 
-    private static boolean greaterThan(ContextValue a, ContextValue b) {
-        switch (a.getClassName()) {
+    private static boolean gtOrLt(ContextValue a, ContextValue b, ComparisonOperator op) {
+        if (eitherAreNull(a, b)) {
+            throw new ComparisonException("Cannot compare by " + op.name() + " when one of the values is null.");
+        }
+        switch (a.value().getClass().getName()) {
             case "java.math.BigDecimal" -> {
-                BigDecimal numA = new BigDecimal(a.getFieldValue().toString());
-                BigDecimal numB = new BigDecimal(b.getFieldValue().toString());
-                return numA.compareTo(numB) > 0;
+                BigDecimal numA = new BigDecimal(a.value().toString());
+                BigDecimal numB = new BigDecimal(b.value().toString());
+                return op == ComparisonOperator.GREATER_THAN ? numA.compareTo(numB) > 0 : numA.compareTo(numB) < 0;
             }
-            case "Integer", "int" -> {
-                Integer numA = (Integer) a.getFieldValue();
-                Integer numB = (Integer) b.getFieldValue();
-                return numA > numB;
+            case "java.lang.Integer", "int" -> {
+                int numA = Integer.parseInt(a.value().toString());
+                int numB = Integer.parseInt(b.value().toString());
+                return op == ComparisonOperator.GREATER_THAN ? numA > numB : numA < numB;
             }
-            case "Double", "double" -> {
-                Double numA = (Double) a.getFieldValue();
-                Double numB = (Double) b.getFieldValue();
-                return numA > numB;
+            case "java.lang.Double", "double" -> {
+                double numA = Double.parseDouble(a.value().toString());
+                double numB = Double.parseDouble(b.value().toString());
+                return op == ComparisonOperator.GREATER_THAN ? numA > numB : numA < numB;
             }
-            case "String" -> {
-                String strA = (String) a.getFieldValue();
-                String strB = (String) b.getFieldValue();
-                return strA.compareTo(strB) > 0;
-            }
-            default -> throw new ComparisonException("Cannot compare values of type: " + a.getClassName());
+            default -> throw new ComparisonException("Cannot compare values of type: " + a.value().getClass().getName());
         }
     }
 
-    private static boolean lessThan(ContextValue a, ContextValue b) {
-        switch (a.getClassName()) {
-            case "java.math.BigDecimal" -> {
-                BigDecimal numA = new BigDecimal(a.getFieldValue().toString());
-                BigDecimal numB = new BigDecimal(b.getFieldValue().toString());
-                return numA.compareTo(numB) < 0;
-            }
-            case "Integer", "int" -> {
-                Integer numA = (Integer) a.getFieldValue();
-                Integer numB = (Integer) b.getFieldValue();
-                return numA < numB;
-            }
-            case "Double", "double" -> {
-                Double numA = (Double) a.getFieldValue();
-                Double numB = (Double) b.getFieldValue();
-                return numA < numB;
-            }
-            case "String" -> {
-                String strA = (String) a.getFieldValue();
-                String strB = (String) b.getFieldValue();
-                return strA.compareTo(strB) < 0;
-            }
-            default -> throw new ComparisonException("Cannot compare values of type: " + a.getClassName());
+    private static boolean gteOrLte(ContextValue a, ContextValue b, ComparisonOperator op) {
+        if (eitherAreNull(a, b)) {
+            throw new ComparisonException("Cannot compare by " + op.name() + " when one of the values is null.");
         }
+        switch (a.value().getClass().getName()) {
+            case "java.math.BigDecimal" -> {
+                BigDecimal numA = new BigDecimal(a.value().toString());
+                BigDecimal numB = new BigDecimal(b.value().toString());
+                return op == ComparisonOperator.GREATER_THAN_OR_EQUAL ? numA.compareTo(numB) >= 0 : numA.compareTo(numB) <= 0;
+            }
+            case "java.lang.Integer", "int" -> {
+                int numA = Integer.parseInt(a.value().toString());
+                int numB = Integer.parseInt(b.value().toString());
+                return op == ComparisonOperator.GREATER_THAN_OR_EQUAL ? numA >= numB : numA <= numB;
+            }
+            case "java.lang.Double", "double" -> {
+                double numA = Double.parseDouble(a.value().toString());
+                double numB = Double.parseDouble(b.value().toString());
+                return op == ComparisonOperator.GREATER_THAN_OR_EQUAL ? numA >= numB : numA <= numB;
+            }
+            default -> throw new ComparisonException("Cannot compare values of type: " + a.value().getClass().getName());
+        }
+    }
+
+    private static boolean eitherAreNull(ContextValue a, ContextValue b) {
+        return (Objects.isNull(a.value()) || Objects.isNull(b.value()));
     }
 }

@@ -13,15 +13,12 @@ public class ComparisonCondition implements Condition {
 
     public boolean evaluate(EvaluationContext context) {
         ContextValue fieldValue = context.getFieldValue(field);
-        if (fieldValue.getResult() == ContextValue.FieldLookupResult.MISSING) {
+        if (fieldValue.result() == FieldLookupResult.MISSING) {
             throw new ComparisonException("Field '" + field + "' is missing from the evaluation context.");
         }
         ContextValue compareToValue = new ContextValue(
-                fieldValue.getResult() == ContextValue.FieldLookupResult.FOUNDNULL
-                        ? "null"
-                        : value.getClass().getName(),
                 value,
-                ContextValue.FieldLookupResult.PROVIDED
+                FieldLookupResult.PROVIDED
         );
         return ComparisonEvaluator.doComparison(op, fieldValue, compareToValue);
     }

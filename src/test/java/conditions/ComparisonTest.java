@@ -102,7 +102,7 @@ class ComparisonTest {
     }
 
     @Test
-    void test_notShouldReturnTrueWhenConditionIsTrue() {
+    void test_notShouldReturnTrueWhenConditionIsFalse() {
         ConditionGroup cdg = TestConditionFactory.getCdg_not_countryEq();
         Map<String, Object> facts = Map.of(
                 "customer.country", "US",
@@ -232,5 +232,21 @@ class ComparisonTest {
 
         boolean result = cond.evaluate(ctx);
         Assertions.assertTrue(result, "BigDecimal constructed with one decimal point should equal the same amount constructed with two decimal points.");
+    }
+
+    @Test
+    void test_nonNullActualVersusNullExpectedShouldReturnFalse() {
+        ComparisonCondition cond = new ComparisonCondition(
+                "customer.industry",
+                ComparisonOperator.EQUALS,
+                null
+        );
+        Map<String, Object> facts = Map.of(
+                "customer.industry", "Technology"
+        );
+        EvaluationContext ctx = new EvaluationContext(facts);
+
+        boolean result = cond.evaluate(ctx);
+        Assertions.assertFalse(result, "Non-null compared to null should return false.");
     }
 }
